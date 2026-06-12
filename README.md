@@ -4,12 +4,22 @@
 
 ## 安装
 
-### 1. 环境要求
+### 🤖 AI 一键安装（推荐）
+
+把下面这句话发给 Claude Code 就行：
+
+> 帮我安装 gupiao skill，仓库地址 https://github.com/CrownTsui/gupiao-skill ，克隆到 ~/.claude/skills/gupiao，pip 安装依赖，然后编辑 stocks.json 把自选股改成 XXXX
+
+（把 `XXXX` 换成你想关注的股票代码，比如 `000001,600519`）
+
+### 手动安装
+
+#### 1. 环境要求
 
 - Python 3.10+
 - Claude Code
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
 ```bash
 pip install -r requirements.txt
@@ -17,21 +27,14 @@ pip install -r requirements.txt
 
 > `curl_cffi` 安装遇到问题时：macOS → `brew install curl-cffi`；Linux → 参考 [curl_cffi](https://github.com/lexiforest/curl_cffi)
 
-### 3. 安装 Skill
-
-```bash
-mkdir -p ~/.claude/skills
-cp -r . ~/.claude/skills/gupiao
-```
-
-或者克隆仓库直接安装：
+#### 3. 安装 Skill
 
 ```bash
 git clone https://github.com/CrownTsui/gupiao-skill.git ~/.claude/skills/gupiao
 cd ~/.claude/skills/gupiao && pip install -r requirements.txt
 ```
 
-### 4. 配置自选股（可选）
+#### 4. 配置自选股（可选）
 
 编辑 `~/.claude/skills/gupiao/stocks.json`：
 
