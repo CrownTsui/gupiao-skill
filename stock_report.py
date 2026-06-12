@@ -452,7 +452,6 @@ body{{
   </div>
   <div class="sub-t">观察要点</div>
   {''.join(f'<div class="obs"><span class="obs-dot"></span>{o}</div>' for o in fc_obs)}
-  <div style="color:var(--text3);font-size:12px;margin-top:14px;line-height:1.7">{F.get('重要提示','')}</div>
 </div>
 
 <!-- ====== 6. 关键价位 + 因子明细（并排） ====== -->

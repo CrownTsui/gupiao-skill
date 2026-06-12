@@ -1662,7 +1662,6 @@ def generate_price_forecast(realtime: dict, technical: dict) -> dict:
         "置信度说明": conf_note,
         "各周期预测": forecasts,
         "观察要点": observations,
-        "重要提示": "以上预测基于历史统计模型，实际走势受政策、资金、情绪等多因素影响，偏差可能很大。仅供参考，不构成投资建议。",
     }
 
 
