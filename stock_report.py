@@ -81,7 +81,7 @@ def render(data: dict) -> str:
         if not p: continue
         chg_s = p.get("预计涨跌","")
         cn = float(chg_s.replace("%","").replace("+","")) if chg_s else 0
-        cc = "#34c759" if cn>=0 else "#ff3b30"
+        cc = "#ff3b30" if cn>=0 else "#34c759"
         scs = p.get("情景分析",{})
         bull = scs.get("乐观",{})
         base = scs.get("基准",{})
@@ -108,7 +108,7 @@ def render(data: dict) -> str:
     cc = _chg_cls(chg)
     sc = _sc(total)
     # 趋势方向色
-    trend_c = "#34c759" if "升" in fc_trend or "偏多" in fc_trend else ("#ff3b30" if "降" in fc_trend or "偏空" in fc_trend else "#8e8e93")
+    trend_c = "#ff3b30" if "升" in fc_trend or "偏多" in fc_trend else ("#34c759" if "降" in fc_trend or "偏空" in fc_trend else "#8e8e93")
 
     html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -120,7 +120,7 @@ def render(data: dict) -> str:
 :root{{
   --bg:#f2f2f7; --card:#fff; --card2:#fafafc; --border:#e4e4ea; --border2:#f0f0f3;
   --text:#1c1c1e; --text2:#515154; --text3:#8e8e93;
-  --up:#34c759; --down:#ff3b30; --warn:#ff9f0a; --blue:#0071e3; --blue-bg:#f0f5ff;
+  --up:#ff3b30; --down:#34c759; --warn:#ff9f0a; --blue:#0071e3; --blue-bg:#f0f5ff;
   --r:16px; --rs:10px;
   --fn:"SF Mono","Cascadia Code","JetBrains Mono",monospace;
   --ui:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue",system-ui,sans-serif;
@@ -561,7 +561,7 @@ def render_multi(outputs: list) -> str:
 :root{{
   --bg:#f2f2f7; --card:#fff; --card2:#fafafc; --border:#e4e4ea; --border2:#f0f0f3;
   --text:#1c1c1e; --text2:#515154; --text3:#8e8e93;
-  --up:#34c759; --down:#ff3b30; --warn:#ff9f0a; --blue:#0071e3; --blue-bg:#f0f5ff;
+  --up:#ff3b30; --down:#34c759; --warn:#ff9f0a; --blue:#0071e3; --blue-bg:#f0f5ff;
   --r:16px; --rs:10px;
   --fn:"SF Mono","Cascadia Code","JetBrains Mono",monospace;
   --ui:-apple-system,"SF Pro Display","PingFang SC","Helvetica Neue",system-ui,sans-serif;
@@ -967,7 +967,7 @@ def render_card(data: dict) -> str:
     pos = A.get("仓位参考", {})
 
     chg_sign = f"+{chg}" if (chg or 0) >= 0 else str(chg)
-    chg_icon = "🟢" if (chg or 0) >= 0 else "🔴"
+    chg_icon = "🔴" if (chg or 0) >= 0 else "🟢"
 
     if total >= 80:
         sc_icon, sc_tag = "🌟", "强烈看好"
@@ -985,11 +985,11 @@ def render_card(data: dict) -> str:
     for r in risks:
         lv = r.get("级别", "")
         if lv == "高":
-            risk_lines += f"🔴 {r.get('信号', '')}\n"
+            risk_lines += f"🟢 {r.get('信号', '')}\n"
         elif lv == "中":
             risk_lines += f"🟠 {r.get('信号', '')}\n"
     if not risk_lines:
-        risk_lines = "🟢 未检测到显著风险\n"
+        risk_lines = "🔴 未检测到显著风险\n"
 
     # 关键信号前3条
     key_sigs = signals[:3] if signals else []
@@ -1059,7 +1059,7 @@ WR：{T.get('WR','-')}（{T.get('WR状态','-')}）　│　量价：{T.get('量
 def render_backtest_card(bt: dict) -> str:
     """生成回测结果卡片（文本）"""
     total_ret = float(bt.get("总收益率", "0").replace("%", "").replace("+", ""))
-    icon = "🟢" if total_ret > 0 else "🔴"
+    icon = "🔴" if total_ret > 0 else "🟢"
     sharpe = bt.get("夏普比率", 0)
 
     lines = []
@@ -1097,7 +1097,7 @@ def render_backtest_html(bt: dict) -> str:
     name = bt.get("股票名称", bt.get("股票代码", ""))
     code = bt.get("股票代码", "")
     total_ret = float(bt.get("总收益率", "0").replace("%", "").replace("+", ""))
-    color = "#34c759" if total_ret > 0 else "#ff3b30"
+    color = "#ff3b30" if total_ret > 0 else "#34c759"
     trades = bt.get("交易记录", [])
 
     # 收益曲线数据
@@ -1110,7 +1110,7 @@ def render_backtest_html(bt: dict) -> str:
     trade_rows = ""
     for i, t in enumerate(trades):
         ret = t.get("return_pct", 0)
-        rc = "#34c759" if ret > 0 else "#ff3b30"
+        rc = "#ff3b30" if ret > 0 else "#34c759"
         trade_rows += f'''<tr>
             <td>{i+1}</td><td>{t.get('entry_date','')}</td><td>{t.get('entry_price',0):.2f}</td>
             <td>{t.get('exit_date','')}</td><td>{t.get('exit_price',0):.2f}</td>
@@ -1126,7 +1126,7 @@ def render_backtest_html(bt: dict) -> str:
 <title>{name}（{code}）历史回测</title>
 <style>
 :root{{--bg:#f2f2f7;--card:#fff;--text:#1c1c1e;--text2:#515154;--text3:#8e8e93;
-  --blue:#0071e3;--up:#34c759;--down:#ff3b30;--r:16px;
+  --blue:#0071e3;--up:#ff3b30;--down:#34c759;--r:16px;
   --ui:-apple-system,"SF Pro Display","PingFang SC",system-ui,sans-serif;
   --fn:"SF Mono",monospace;}}
 *{{margin:0;padding:0;box-sizing:border-box}}
@@ -1188,8 +1188,8 @@ h2{{font-size:16px;font-weight:700;margin:28px 0 14px;color:var(--blue)}}
 
 <div class="card">
   <div class="card-title">收益曲线（逐笔累计）</div>
-  <div class="bar-chart">{"".join(f'<div class="bar" style="height:{max(2,abs(c)*2)}px;background:{"#34c759" if c>=0 else "#ff3b30"}" title="{c:+.2f}%"></div>' for c in curve_data[-60:])}</div>
-  <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:6px">最近{min(60,len(curve_data))}笔交易 &middot; 绿色=盈利 红色=亏损</div>
+  <div class="bar-chart">{"".join(f'<div class="bar" style="height:{max(2,abs(c)*2)}px;background:{"#ff3b30" if c>=0 else "#34c759"}" title="{c:+.2f}%"></div>' for c in curve_data[-60:])}</div>
+  <div style="text-align:center;font-size:10px;color:var(--text3);margin-top:6px">最近{min(60,len(curve_data))}笔交易 &middot; 红色=盈利 绿色=亏损</div>
 </div>
 
 <h2>交易明细（共{len(trades)}笔）</h2>
