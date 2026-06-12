@@ -1412,6 +1412,74 @@ def run_backtest(code: str, days: int = 500) -> dict:
 
 # ==================== 走势预测 ====================
 
+
+def _garch_forecast_var(returns: np.ndarray, horizon: int = 30) -> tuple:
+    """GARCH(1,1)波动率预测。网格搜索MLE估计参数，预测未来horizon天条件方差路径。"""
+    n = len(returns)
+    if n < 30:
+        return None, float(np.std(returns)), False
+
+    mu = float(np.mean(returns))
+    centered = returns - mu
+    uncond_var = float(np.var(centered))
+
+    if uncond_var < 1e-8:
+        return None, float(np.sqrt(uncond_var)) if uncond_var > 0 else 0.01, False
+
+    def _ll(omega, alpha, beta):
+        if omega <= 0 or alpha < 0 or beta < 0 or alpha + beta >= 0.999:
+            return -1e9
+        sigma2 = np.zeros(n)
+        sigma2[0] = uncond_var
+        ll_val = -0.5 * np.log(2 * np.pi * sigma2[0]) - 0.5 * centered[0]**2 / sigma2[0]
+        for t in range(1, n):
+            sigma2[t] = omega + alpha * centered[t-1]**2 + beta * sigma2[t-1]
+            if sigma2[t] <= 1e-10:
+                return -1e9
+            ll_val += -0.5 * np.log(2 * np.pi * sigma2[t]) - 0.5 * centered[t]**2 / sigma2[t]
+        return ll_val
+
+    # coarse grid search
+    best_ll, best = -1e9, (1e-6, 0.08, 0.85)
+    for omega in np.logspace(-7, -4, 12):
+        for alpha in np.linspace(0.02, 0.25, 10):
+            for beta in np.linspace(0.70, 0.97, 12):
+                ll = _ll(omega, alpha, beta)
+                if ll > best_ll:
+                    best_ll, best = ll, (omega, alpha, beta)
+
+    # fine grid around best
+    o0, a0, b0 = best
+    for omega in np.linspace(o0 * 0.3, o0 * 3, 8):
+        for alpha in np.linspace(max(0.01, a0 - 0.05), min(0.30, a0 + 0.06), 8):
+            for beta in np.linspace(max(0.65, b0 - 0.05), min(0.98, b0 + 0.05), 8):
+                ll = _ll(omega, alpha, beta)
+                if ll > best_ll:
+                    best_ll, best = ll, (omega, alpha, beta)
+
+    omega, alpha, beta = best
+    if alpha + beta >= 0.999:
+        return None, float(np.sqrt(uncond_var)), False
+
+    # compute full sigma2 series
+    sigma2 = np.zeros(n)
+    sigma2[0] = uncond_var
+    for t in range(1, n):
+        sigma2[t] = omega + alpha * centered[t-1]**2 + beta * sigma2[t-1]
+
+    sigma2_now = float(sigma2[-1])
+    uncond_long = omega / (1 - alpha - beta)
+    persistence = alpha + beta
+
+    # forecast path: E[sigma^2_{t+h} | F_t], h=1..horizon
+    var_path = np.zeros(horizon)
+    var_path[0] = sigma2_now
+    for h in range(1, horizon):
+        var_path[h] = uncond_long + persistence ** h * (sigma2_now - uncond_long)
+
+    return var_path, float(np.sqrt(uncond_long)), True
+
+
 def generate_price_forecast(realtime: dict, technical: dict) -> dict:
     """
     基于历史波动率和趋势动量，生成1/5/10/30日价格预测区间。
@@ -1433,6 +1501,9 @@ def generate_price_forecast(realtime: dict, technical: dict) -> dict:
     std_return = float(np.std(daily_returns[-60:]))           # 60日波动率
     if std_return == 0:
         std_return = 0.01  # 防除零
+
+    # GARCH(1,1) 波动率预测
+    garch_var_path, garch_uncond_vol, garch_ok = _garch_forecast_var(daily_returns, 30)
 
     # ---- 趋势识别 ----
     ma5 = technical.get("MA5")
@@ -1486,7 +1557,11 @@ def generate_price_forecast(realtime: dict, technical: dict) -> dict:
 
         # === 置信区间（基于历史波动率） ===
         # 68% 置信区间 (±1σ)
-        sigma = std_return * np.sqrt(d)
+        if garch_ok:
+            total_var = max(sum(garch_var_path[:d]), 0.0001)
+            sigma = np.sqrt(float(total_var))
+        else:
+            sigma = std_return * np.sqrt(d)
         ci68_low = round(price * (1 + base_return - sigma), 2)
         ci68_high = round(price * (1 + base_return + sigma), 2)
         # 95% 置信区间 (±2σ)
@@ -1567,10 +1642,11 @@ def generate_price_forecast(realtime: dict, technical: dict) -> dict:
     else:
         observations.append("趋势不明，短期价格以随机波动为主")
 
-    if std_return > 0.03:
-        observations.append(f"日波动率{std_return*100:.1f}%偏高，短期波动风险较大")
-    elif std_return < 0.01:
-        observations.append(f"日波动率{std_return*100:.1f}%极低，可能出现大幅波动")
+    current_vol = np.sqrt(float(garch_var_path[0])) if garch_ok else std_return
+    if current_vol > 0.03:
+        observations.append(f"日波动率{current_vol*100:.1f}%偏高（GARCH{'条件' if garch_ok else '历史'}), 短期波动风险较大")
+    elif current_vol < 0.01:
+        observations.append(f"日波动率{current_vol*100:.1f}%极低（GARCH{'条件' if garch_ok else '历史'}), 可能出现大幅波动")
 
     # 关键均线位置
     if ma20:
@@ -1581,7 +1657,7 @@ def generate_price_forecast(realtime: dict, technical: dict) -> dict:
     return {
         "预测基准日": datetime.now().strftime("%Y-%m-%d"),
         "当前趋势": trend_label,
-        "日波动率": f"{std_return*100:.2f}%",
+        "日波动率": f"{(np.sqrt(float(garch_var_path[0]))*100 if garch_ok else std_return*100):.2f}%",
         "预测置信度": f"{confidence}%（{conf_label}）",
         "置信度说明": conf_note,
         "各周期预测": forecasts,
